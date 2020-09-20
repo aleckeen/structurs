@@ -1,0 +1,16 @@
+[package]
+name = "struct-reader-derive"
+version = "0.1.0"
+authors = ["Alec Keen <aleckeen@tutanota.com>"]
+edition = "2018"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+syn = { version = "1.0", features = ["extra-traits"] }
+quote = "1.0"
+proc-macro2 = "1.0"
+
+[dev-dependencies]
+trybuild = { version = "1.0", features = ["diff"] }
