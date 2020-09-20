@@ -1,4 +1,4 @@
-use struct_reader::Read;
+use structurs::Read;
 
 #[derive(Read, Default, Debug)]
 pub struct TestData

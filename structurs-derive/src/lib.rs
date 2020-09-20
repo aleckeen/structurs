@@ -3,8 +3,8 @@ use quote::quote;
 use syn::{parse_macro_input, DeriveInput};
 
 /// This derive macro reads the fields of a struct and generates a valid
-/// [`struct_reader::Read::read`] function. All of the field types must implement the
-/// [`struct_reader::Read`] trait. Only named structures are supported at this point, but I am
+/// [`structurs::Read::read`] function. All of the field types must implement the
+/// [`structurs::Read`] trait. Only named structures are supported at this point, but I am
 /// thinking aboout expanding the supported types.
 #[proc_macro_derive(Read)]
 pub fn derive_read_struct(input: TokenStream) -> TokenStream
@@ -42,7 +42,7 @@ pub fn derive_read_struct(input: TokenStream) -> TokenStream
       });
       let mut array_fields = Vec::new();
       for _ in 0..len {
-        array_fields.push(quote! { <#elem as ::struct_reader::Read>::read(reader)? });
+        array_fields.push(quote! { <#elem as ::structurs::Read>::read(reader)? });
       }
 
       // Generate array reader.
@@ -54,13 +54,13 @@ pub fn derive_read_struct(input: TokenStream) -> TokenStream
     } else {
       // Generate normal field reader.
       quote! {
-        #field_name: <#field_ty as ::struct_reader::Read>::read(reader)?
+        #field_name: <#field_ty as ::structurs::Read>::read(reader)?
       }
     }
   });
 
   let expanded = quote! {
-    impl ::struct_reader::Read for #struct_name {
+    impl ::structurs::Read for #struct_name {
       fn read<R>(reader: &mut R) -> ::std::io::Result<Self>
       where
         R: ::std::io::Read

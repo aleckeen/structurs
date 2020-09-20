@@ -1,6 +1,6 @@
 use std::io;
 
-pub use struct_reader_derive::*;
+pub use structurs_derive::*;
 
 pub trait Reader: io::Read
 {

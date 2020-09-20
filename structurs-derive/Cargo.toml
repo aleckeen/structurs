@@ -1,5 +1,5 @@
 [package]
-name = "struct-reader-derive"
+name = "structurs-derive"
 version = "0.1.0"
 authors = ["Alec Keen <aleckeen@tutanota.com>"]
 edition = "2018"
