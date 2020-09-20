@@ -13,8 +13,3 @@ trybuild = { version = "1.0", features = ["diff"] }
 [[test]]
 name = "tests"
 path = "tests/progress.rs"
-
-# This bin is used to see the result of `cargo expand`.
-[[bin]]
-name = "tests-bin"
-path = "tests/bin.rs"
