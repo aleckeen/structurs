@@ -17,6 +17,5 @@ fn main()
     93, 34, 122, 135, 84, 19, 162,
   ];
   let mut c = std::io::Cursor::new(v);
-  let t = TestData::read(&mut c);
-  eprintln!("{:#?}", t);
+  let _ = TestData::read(&mut c);
 }

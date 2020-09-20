@@ -73,6 +73,9 @@ pub trait Read
     Self: Sized;
 }
 
+#[derive(Debug, Default, Eq, PartialEq, Copy, Clone)]
+pub struct Pad;
+
 macro_rules! impl_primitive {
   ($ty:ty, $bytes:expr) => {
     impl PrimitiveRead for $ty
