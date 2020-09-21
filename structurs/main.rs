@@ -1,6 +1,6 @@
-use structurs::{Pad, Read};
+use structurs::{Pad, Reader};
 
-#[derive(Read, Debug, Eq, PartialEq, Default)]
+#[derive(structurs::Read, Debug, Eq, PartialEq, Default)]
 pub struct TestData2
 {
   #[le]
@@ -9,7 +9,7 @@ pub struct TestData2
   field_2: i16,
 }
 
-#[derive(Read, Default, Debug, Eq, PartialEq)]
+#[derive(structurs::Read, Default, Debug, Eq, PartialEq)]
 pub struct TestData
 {
   #[be]
@@ -30,7 +30,10 @@ const DATA: TestData = TestData {
   field_2: 101876807604715792753432598791754839769,
   field_3: 100,
   pad_to_32: Pad,
-  test_data_2: TestData2 { field_1: 0, field_2: 0 },
+  test_data_2: TestData2 {
+    field_1: 1222188209,
+    field_2: -30174,
+  },
   another_pad: [0; 12],
 };
 
@@ -46,6 +49,6 @@ fn main()
 {
   // random numbers to test. Not very useful but at least doesn't throw an error.
   let mut c = std::io::Cursor::new(DATA_BYTES);
-  let t = TestData::read(&mut c).unwrap();
+  let t = c.read::<TestData>().unwrap();
   assert_eq!(DATA, t);
 }

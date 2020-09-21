@@ -1,20 +1,5 @@
-[package]
-name = "structurs"
-version = "0.1.0"
-authors = ["Alec Keen <aleckeen@tutanota.com>"]
-edition = "2018"
-
-[dependencies]
-structurs-derive = { path = "structurs-derive" }
-
-[dev-dependencies]
-trybuild = { version = "1.0", features = ["diff"] }
-
-[[test]]
-name = "tests"
-path = "tests/progress.rs"
-
-# Just a main file where we can expand stuff.
-[[bin]]
-name = "tests-main"
-path = "main.rs"
+[workspace]
+members = [
+  "structurs",
+  "structurs-derive",
+]
