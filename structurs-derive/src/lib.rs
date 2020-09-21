@@ -136,11 +136,11 @@ pub fn derive_read_struct(input: TokenStream) -> TokenStream
     let attrs = Attributes::new(&f.attrs);
 
     let read_func_token = read_func(elem_ty, &attrs.endian);
-    let read_func_tokens = replicate_token(&read_func_token, elements);
+    let read_func_tokens = (0..elements).map(|_| read_func_token.clone()).collect();
     let read_func_body = tokens_to_body(&read_func_tokens);
 
     let default_func_token = quote! { <#elem_ty as ::std::default::Default>::default() };
-    let default_func_tokens = replicate_token(&default_func_token, elements);
+    let default_func_tokens = (0..elements).map(|_| default_func_token.clone()).collect();
     let default_func_body = tokens_to_body(&default_func_tokens);
 
     let body = if let Some(pad) = attrs.padding {
@@ -220,16 +220,6 @@ fn array_type(ty: &syn::Type) -> Option<(&syn::Type, usize)>
   } else {
     None
   }
-}
-
-#[inline(always)]
-fn replicate_token(token: &proc_macro2::TokenStream, elem_length: usize) -> Vec<proc_macro2::TokenStream>
-{
-  let mut tokens = Vec::with_capacity(elem_length);
-  for _ in 0..elem_length {
-    tokens.push(token.clone());
-  }
-  tokens
 }
 
 #[inline(always)]
