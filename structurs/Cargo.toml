@@ -11,3 +11,7 @@ readme = "README.md"
 
 [dependencies]
 structurs-derive = { version = "0.1.0", path = "../structurs-derive" }
+
+[features]
+default = []
+derive = []

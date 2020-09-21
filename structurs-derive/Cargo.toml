@@ -3,6 +3,11 @@ name = "structurs-derive"
 version = "0.1.0"
 authors = ["Alec Keen <aleckeen@tutanota.com>"]
 edition = "2018"
+license = "MIT"
+description = "Macro implementation of #[derive(structurs::Read)]."
+repository = "https://github.com/aleckeen/structurs"
+keywords = ["read", "bytes"]
+readme = "README.md"
 
 [lib]
 proc-macro = true
@@ -11,6 +16,3 @@ proc-macro = true
 syn = { version = "1.0", features = ["extra-traits"] }
 quote = "1.0"
 proc-macro2 = "1.0"
-
-[dev-dependencies]
-trybuild = { version = "1.0", features = ["diff"] }
