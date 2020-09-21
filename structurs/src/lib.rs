@@ -78,7 +78,7 @@ pub use structurs_derive::*;
 /// fn main()
 /// {
 ///   let mut c: Cursor<Vec<u8>> = Cursor::new(vec![241, 255, 255, 255, 25, 0, 97, 0]);
-///   let val = c.read::<Test>().unwrap();
+///   let val = c.read_as::<Test>().unwrap();
 ///   assert_eq!(
 ///     Test {
 ///       first_field: -15,
@@ -88,13 +88,13 @@ pub use structurs_derive::*;
 ///   );
 /// }
 /// ```
-pub trait Reader
+pub trait Reader: io::Read
 {
   #[inline]
-  fn read<T>(&mut self) -> io::Result<T>
+  fn read_as<T>(&mut self) -> io::Result<T>
   where
     T: Read,
-    Self: Sized + io::Read,
+    Self: Sized,
   {
     T::read(self)
   }
@@ -103,7 +103,7 @@ pub trait Reader
   fn read_le<T>(&mut self) -> io::Result<T>
   where
     T: PrimitiveRead,
-    Self: Sized + io::Read,
+    Self: Sized,
   {
     T::read_le(self)
   }
@@ -112,7 +112,7 @@ pub trait Reader
   fn read_be<T>(&mut self) -> io::Result<T>
   where
     T: PrimitiveRead,
-    Self: Sized + io::Read,
+    Self: Sized,
   {
     T::read_be(self)
   }
