@@ -3,18 +3,11 @@ name = "structurs"
 version = "0.1.0"
 authors = ["Alec Keen <aleckeen@tutanota.com>"]
 edition = "2018"
+license = "MIT"
+description = "Read bytes from a source and turn them into structures."
+repository = "https://github.com/aleckeen/structurs"
+keywords = ["read", "bytes"]
+readme = "README.md"
 
 [dependencies]
-structurs-derive = { path = "../structurs-derive" }
-
-[dev-dependencies]
-trybuild = { version = "1.0", features = ["diff"] }
-
-[[test]]
-name = "tests"
-path = "tests/progress.rs"
-
-# Just a main file where we can expand stuff.
-[[bin]]
-name = "tests-main"
-path = "main.rs"
+structurs-derive = { version = "0.1.0", path = "../structurs-derive" }
