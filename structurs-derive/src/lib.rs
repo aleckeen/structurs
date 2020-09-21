@@ -18,25 +18,14 @@ impl Default for Endian
   }
 }
 
-/// Padding options if `#[pad]` attribute is passed.
 enum Padding
 {
-  /// Reads the field normally, but the field is set to [`Default::default()`] afterwards. This is
-  /// the default behaviour of the `#[pad]` attribute.
   Read,
-
-  /// Reads N bytes, where N is the number passed to `#[pad(bytes = N)]`, into a throw-away buffer
-  /// and discards the buffer afterwards. Field is then initialized to [`Default::default()`]. This
-  /// is especially useful if the field type is an empty struct where it would have no size
-  /// therefore saving precious bytes.
   Bytes(usize),
 }
 
 impl Padding
 {
-  /// Parses the attribute and extracts the information. If `bytes` is not passed to the `pad`
-  /// attribute, then it simply returns [`Padding::Read`]. Else it checks for errors and if
-  /// everyting is as expected, returns [`Padding::Bytes`]
   fn parse(attr: &syn::Attribute) -> Self
   {
     let mut padding = Padding::default();
@@ -148,7 +137,9 @@ pub fn derive_read_struct(input: TokenStream) -> TokenStream
         Padding::Read => {
           quote! {
             {
-              #(#read_func_tokens;)*
+              let size = ::std::mem::size_of::<#elem_ty>() * #elements;
+              let mut pad_buf = vec![0; size];
+              reader.read_exact(&mut pad_buf[..])?;
               #default_func_body
             }
           }
