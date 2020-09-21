@@ -7,7 +7,7 @@ Writing a function that reads bytes into a structure can be a tedious job.
 your structure. It also includes attributes that can change the way some of the fields are
 read.
 
-By default all fields will be read using [`structurs::Read::read`] function, but you might have
+By default all fields will be read using `structurs::Read::read` function, but you might have
 fields that might need to be read in big-endian format. In that case you can mark those fields
 with `#[be]` attribute.
 
@@ -20,10 +20,10 @@ The following is the list of attributes that can be used to mark the fields of s
 - `#[ne]`, This denotes that the field is in CPU's native endian format. Most CPU's will use
   little-endian format.
 - `#[pad]`, This denotes that the field is a padding and is not important. In this case the
-  field will be initialized to its default value using [`Default::default`]. By default the
+  field will be initialized to its default value using `Default::default`. By default the
   length of the field type worth of bytes will be read from the reader. You can also pass a
   `bytes` value to this attribute. `#[pad(bytes = N)]` means that N bytes should be read from
-  the reader in which case field type is not important and should be [`structurs::Pad`].
+  the reader in which case field type is not important and should be `structurs::Pad`.
 
 # Example
 
