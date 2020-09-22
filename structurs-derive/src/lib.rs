@@ -96,6 +96,8 @@ pub fn derive_read_struct(input: TokenStream) -> TokenStream
 {
   let ast = parse_macro_input!(input as DeriveInput);
   let struct_name = &ast.ident;
+  let generics = &ast.generics;
+  let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
 
   // fields of the input struct must be named (at least for now).
   let fields = if let syn::Data::Struct(syn::DataStruct {
@@ -162,7 +164,7 @@ pub fn derive_read_struct(input: TokenStream) -> TokenStream
   });
 
   let expanded = quote! {
-    impl ::structurs::Read for #struct_name {
+    impl #impl_generics ::structurs::Read for #struct_name #ty_generics #where_clause {
       fn read<R>(reader: &mut R) -> ::std::io::Result<Self>
       where
         R: ::std::io::Read
