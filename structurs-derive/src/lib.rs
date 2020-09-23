@@ -91,6 +91,12 @@ impl Attributes
   }
 }
 
+enum ArrayLength
+{
+  Int(usize),
+  Const(syn::Expr),
+}
+
 #[proc_macro_derive(Read, attributes(le, be, ne, pad))]
 pub fn derive_read_struct(input: TokenStream) -> TokenStream
 {
@@ -118,46 +124,42 @@ pub fn derive_read_struct(input: TokenStream) -> TokenStream
     // then it is simply 1;
     let (elem_ty, elements) = match array_type(&f.ty) {
       Some(elems) => elems,
-      None => (&f.ty, 1),
+      None => (&f.ty, ArrayLength::Int(1)),
     };
 
     // Read attributes passed to this field.
     let attrs = Attributes::new(&f.attrs);
 
     let read_func_token = read_func(elem_ty, &attrs.endian);
-    let read_func_tokens = (0..elements).map(|_| read_func_token.clone()).collect();
-    let read_func_body = tokens_to_body(&read_func_tokens);
+    let read_func_body = get_body(&read_func_token, elem_ty, &elements);
 
     let default_func_token = quote! { <#elem_ty as ::std::default::Default>::default() };
-    let default_func_tokens = (0..elements).map(|_| default_func_token.clone()).collect();
-    let default_func_body = tokens_to_body(&default_func_tokens);
+    let default_func_body = get_body(&default_func_token, elem_ty, &elements);
 
     let body = if let Some(pad) = attrs.padding {
       match pad {
         Padding::Read => {
-          quote! {
-            {
-              let size = ::std::mem::size_of::<#elem_ty>() * #elements;
-              let mut pad_buf = vec![0; size];
-              reader.read_exact(&mut pad_buf[..])?;
-              #default_func_body
-            }
+          let elements_token = match &elements {
+            ArrayLength::Int(size) => quote! { #size },
+            ArrayLength::Const(expr) => quote! { #expr },
+          };
+          quote! { {
+            const PAD_SIZE: usize = ::std::mem::size_of::<#elem_ty>() * #elements_token;
+            let mut pad_buf: [u8; PAD_SIZE] = [0; PAD_SIZE];
+            reader.read_exact(&mut pad_buf[..])?;
+            #default_func_body }
           }
         }
         Padding::Bytes(bytes) => {
-          quote! {
-            {
-              let mut pad_buf: [u8; #bytes] = [0; #bytes];
-              reader.read_exact(&mut pad_buf)?;
-              #default_func_body
-            }
+          quote! { {
+            let mut pad_buf: [u8; #bytes] = [0; #bytes];
+            reader.read_exact(&mut pad_buf)?;
+            #default_func_body }
           }
         }
       }
     } else {
-      quote! {
-        #read_func_body
-      }
+      quote! { #read_func_body }
     };
 
     quote! { #field_name: #body }
@@ -189,34 +191,44 @@ fn read_func(ty: &syn::Type, endian: &Endian) -> proc_macro2::TokenStream
   }
 }
 
-fn array_type(ty: &syn::Type) -> Option<(&syn::Type, usize)>
+fn array_type(ty: &syn::Type) -> Option<(&syn::Type, ArrayLength)>
 {
-  if let syn::Type::Array(syn::TypeArray {
-    ref elem,
-    len: syn::Expr::Lit(syn::ExprLit {
-      lit: syn::Lit::Int(len),
-      ..
-    }),
-    ..
-  }) = ty
-  {
+  if let syn::Type::Array(syn::TypeArray { elem, len, .. }) = ty {
     Some((
       elem,
-      len.base10_parse().unwrap_or_else(|err| {
-        panic!("a parsing error occurred while reading the length of an array: {}", err);
-      }),
+      match len {
+        syn::Expr::Lit(syn::ExprLit {
+          lit: syn::Lit::Int(len),
+          ..
+        }) => ArrayLength::Int(len.base10_parse().unwrap_or_else(|err| {
+          panic!("a parsing error occurred while reading the length of an array: {}", err);
+        })),
+        _ => ArrayLength::Const(len.clone()),
+      },
     ))
   } else {
     None
   }
 }
 
-#[inline(always)]
-fn tokens_to_body(tokens: &Vec<proc_macro2::TokenStream>) -> proc_macro2::TokenStream
+fn get_body(token: &proc_macro2::TokenStream, elem_ty: &syn::Type, ty_length: &ArrayLength)
+  -> proc_macro2::TokenStream
 {
-  if tokens.len() == 1 {
-    quote! { #(#tokens)* }
-  } else {
-    quote! { [ #(#tokens,)* ] }
+  match ty_length {
+    ArrayLength::Int(size) => {
+      let tokens: Vec<proc_macro2::TokenStream> = (0..size.clone()).map(|_| token.clone()).collect();
+      if tokens.len() == 1 {
+        quote! { #(#tokens)* }
+      } else {
+        quote! { [ #(#tokens,)* ] }
+      }
+    }
+    ArrayLength::Const(expr) => quote! { {
+      let mut body: [#elem_ty, #expr] = [0; #expr];
+      for i in 0..#expr {
+        body[i] = #token;
+      }
+      body }
+    },
   }
 }
