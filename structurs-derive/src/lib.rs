@@ -224,7 +224,7 @@ fn get_body(token: &proc_macro2::TokenStream, elem_ty: &syn::Type, ty_length: &A
       }
     }
     ArrayLength::Const(expr) => quote! { {
-      let mut body: [#elem_ty, #expr] = [0; #expr];
+      let mut body: [#elem_ty; #expr] = [0; #expr];
       for i in 0..#expr {
         body[i] = #token;
       }
