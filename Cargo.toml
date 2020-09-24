@@ -1,5 +1,17 @@
-[workspace]
-members = [
-  "structurs",
-  "structurs-derive",
-]
+[package]
+name = "structurs"
+version = "0.1.0"
+authors = ["Alec Keen <aleckeen@tutanota.com>"]
+edition = "2018"
+license = "MIT"
+description = "Read bytes from a source and turn them into structures."
+repository = "https://github.com/aleckeen/structurs"
+keywords = ["read", "bytes"]
+readme = "README.md"
+
+[dependencies]
+structurs-derive = { version = "0.1.0", path = "structurs-derive" }
+
+[features]
+default = []
+derive = []

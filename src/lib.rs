@@ -8,7 +8,7 @@
 //! This crate provides a macro that lets you automatically implement [`structurs::Read`] trait for
 //! you. You need to enable `derive` feature to use this macro.
 //!
-//! ```edition2018
+//! ```edition2018, ignore
 //! #[derive(structurs::Read)]
 //! ```
 //!
