@@ -6,7 +6,7 @@ edition = "2018"
 license = "MIT"
 description = "Read bytes from a source and turn them into structures."
 repository = "https://github.com/aleckeen/structurs"
-keywords = ["read", "bytes"]
+keywords = ["read", "write", "bytes"]
 readme = "README.md"
 
 [dependencies]

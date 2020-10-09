@@ -2,6 +2,18 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::{parse_macro_input, DeriveInput};
 
+#[proc_macro_derive(Read, attributes(le, be, ne, pad))]
+pub fn derive_read_struct(input: TokenStream) -> TokenStream
+{
+  derive_macro(input, true)
+}
+
+#[proc_macro_derive(Write, attributes(le, be, ne, pad))]
+pub fn derive_write_struct(input: TokenStream) -> TokenStream
+{
+  derive_macro(input, false)
+}
+
 /// Endian attribute value.
 enum Endian
 {
@@ -22,7 +34,7 @@ impl Default for Endian
 /// Padding attribute value.
 enum Padding
 {
-  Read,
+  Normal,
   Bytes(usize),
 }
 
@@ -58,7 +70,7 @@ impl Default for Padding
 {
   fn default() -> Self
   {
-    Self::Read
+    Self::Normal
   }
 }
 
@@ -97,8 +109,7 @@ enum ArrayLength
   Const(syn::Expr),
 }
 
-#[proc_macro_derive(Read, attributes(le, be, ne, pad))]
-pub fn derive_read_struct(input: TokenStream) -> TokenStream
+fn derive_macro(input: TokenStream, read: bool) -> TokenStream
 {
   let ast = parse_macro_input!(input as DeriveInput);
   let struct_name = &ast.ident;
@@ -113,11 +124,14 @@ pub fn derive_read_struct(input: TokenStream) -> TokenStream
   {
     named
   } else {
-    panic!("'Read' derive macro only supports structs with named fields.");
+    panic!(
+      "'{}' derive macro only supports structs with named fields.",
+      if read { "Read" } else { "Write" }
+    );
   };
 
   // Fields to pass into struct construction block.
-  let read_impl_fields = fields.iter().map(|f| {
+  let impl_fields = fields.iter().map(|f| {
     let field_name = &f.ident;
     // `elem_ty` is the type of the element if the field type is an array, otherwise it is the type
     // of the field. `elements` is the number of elements the array has and if it is not an array,
@@ -130,50 +144,79 @@ pub fn derive_read_struct(input: TokenStream) -> TokenStream
     // Read attributes passed to this field.
     let attrs = Attributes::new(&f.attrs);
 
-    let read_func_token = read_func(elem_ty, &attrs.endian);
-    let read_func_body = get_body(&read_func_token, elem_ty, &elements);
+    let func_token = get_func(elem_ty, &attrs.endian, read);
+    let func_body = get_body(&func_token, elem_ty, &elements);
 
     let default_func_token = quote! { <#elem_ty as ::std::default::Default>::default() };
     let default_func_body = get_body(&default_func_token, elem_ty, &elements);
 
     let body = if let Some(pad) = attrs.padding {
       match pad {
-        Padding::Read => {
+        Padding::Normal => {
           let elements_token = match &elements {
             ArrayLength::Int(size) => quote! { #size },
             ArrayLength::Const(expr) => quote! { #expr },
           };
-          quote! { {
-            const PAD_SIZE: usize = ::std::mem::size_of::<#elem_ty>() * #elements_token;
-            let mut pad_buf: [u8; PAD_SIZE] = [0; PAD_SIZE];
-            reader.read_exact(&mut pad_buf[..])?;
-            #default_func_body }
+          if read {
+            quote! { {
+              let mut pad_buf = [0u8; ::std::mem::size_of::<#elem_ty>() * #elements_token];
+              reader.read_exact(&mut pad_buf[..])?;
+              #default_func_body }
+            }
+          } else {
+            quote! { {
+              writer.write_all(&[0u8; ::std::mem::size_of::<$elem_ty>() * #elements_token]) }
+            }
           }
         }
         Padding::Bytes(bytes) => {
-          quote! { {
-            let mut pad_buf: [u8; #bytes] = [0; #bytes];
-            reader.read_exact(&mut pad_buf)?;
-            #default_func_body }
+          if read {
+            quote! { {
+              let mut pad_buf = [0u8; #bytes];
+              reader.read_exact(&mut pad_buf)?;
+              #default_func_body }
+            }
+          } else {
+            quote! {
+              writer.write_all(&[0u8; #bytes])
+            }
           }
         }
       }
     } else {
-      quote! { #read_func_body }
+      quote! { #func_body }
     };
 
-    quote! { #field_name: #body }
+    if read {
+      quote! { #field_name: #body }
+    } else {
+      quote! { #body }
+    }
   });
 
-  let expanded = quote! {
-    impl #impl_generics ::structurs::Read for #struct_name #ty_generics #where_clause {
-      fn read<R>(reader: &mut R) -> ::std::io::Result<Self>
-      where
-        R: ::std::io::Read
-      {
-        Ok(Self {
-          #(#read_impl_fields,)*
-        })
+  let expanded = if read {
+    quote! {
+      impl #impl_generics ::structurs::Read for #struct_name #ty_generics #where_clause {
+        fn read<R>(reader: &mut R) -> ::std::io::Result<Self>
+        where
+          R: ::std::io::Read
+        {
+          Ok(Self {
+            #(#impl_fields,)*
+          })
+        }
+      }
+    }
+  } else {
+    quote! {
+      impl #impl_generics ::structurs::Write for #struct_name #ty_generics #where_clause {
+        fn write<W>(&self, writer: &mut W) -> ::std::io::Result<()>
+        where
+          W: ::std::io::Write
+        {
+          #(#impl_fields;)*
+          Ok(())
+        }
       }
     }
   };
@@ -181,13 +224,22 @@ pub fn derive_read_struct(input: TokenStream) -> TokenStream
   expanded.into()
 }
 
-fn read_func(ty: &syn::Type, endian: &Endian) -> proc_macro2::TokenStream
+fn get_func(ty: &syn::Type, endian: &Endian, read: bool) -> proc_macro2::TokenStream
 {
-  match endian {
-    Endian::Little => quote! { <#ty as ::structurs::PrimitiveRead>::read_le(reader)? },
-    Endian::Big => quote! { <#ty as ::structurs::PrimitiveRead>::read_be(reader)? },
-    Endian::Native => quote! { <#ty as ::structurs::PrimitiveRead>::read_ne(reader)? },
-    Endian::Normal => quote! { <#ty as ::structurs::Read>::read(reader)? },
+  if read {
+    match endian {
+      Endian::Little => quote! { <#ty as ::structurs::PrimitiveRead>::read_le(reader)? },
+      Endian::Big => quote! { <#ty as ::structurs::PrimitiveRead>::read_be(reader)? },
+      Endian::Native => quote! { <#ty as ::structurs::PrimitiveRead>::read_ne(reader)? },
+      Endian::Normal => quote! { <#ty as ::structurs::Read>::read(reader)? },
+    }
+  } else {
+    match endian {
+      Endian::Little => quote! { <#ty as ::structurs::PrimitiveWrite>::write_le(self, writer)? },
+      Endian::Big => quote! { <#ty as ::structurs::PrimitiveWrite>::write_be(self, writer)? },
+      Endian::Native => quote! { <#ty as ::structurs::PrimitiveWrite>::write_ne(self, writer)? },
+      Endian::Normal => quote! { <#ty as ::structurs::Write>::write(self, writer)? },
+    }
   }
 }
 
