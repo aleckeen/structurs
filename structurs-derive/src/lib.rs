@@ -240,10 +240,10 @@ fn get_func(
     }
   } else {
     match endian {
-      Endian::Little => quote! { <#ty as ::structurs::PrimitiveWrite>::write_le(self.#field_name, writer)? },
-      Endian::Big => quote! { <#ty as ::structurs::PrimitiveWrite>::write_be(self.#field_name, writer)? },
-      Endian::Native => quote! { <#ty as ::structurs::PrimitiveWrite>::write_ne(self.#field_name, writer)? },
-      Endian::Normal => quote! { <#ty as ::structurs::Write>::write(self.#field_name, writer)? },
+      Endian::Little => quote! { <#ty as ::structurs::PrimitiveWrite>::write_le(&self.#field_name, writer)? },
+      Endian::Big => quote! { <#ty as ::structurs::PrimitiveWrite>::write_be(&self.#field_name, writer)? },
+      Endian::Native => quote! { <#ty as ::structurs::PrimitiveWrite>::write_ne(&self.#field_name, writer)? },
+      Endian::Normal => quote! { <#ty as ::structurs::Write>::write(&self.#field_name, writer)? },
     }
   }
 }
