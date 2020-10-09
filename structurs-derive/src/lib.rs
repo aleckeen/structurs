@@ -144,7 +144,7 @@ fn derive_macro(input: TokenStream, read: bool) -> TokenStream
     // Read attributes passed to this field.
     let attrs = Attributes::new(&f.attrs);
 
-    let func_token = get_func(elem_ty, &attrs.endian, read);
+    let func_token = get_func(elem_ty, &attrs.endian, field_name, read);
     let func_body = get_body(&func_token, elem_ty, &elements);
 
     let default_func_token = quote! { <#elem_ty as ::std::default::Default>::default() };
@@ -224,7 +224,12 @@ fn derive_macro(input: TokenStream, read: bool) -> TokenStream
   expanded.into()
 }
 
-fn get_func(ty: &syn::Type, endian: &Endian, read: bool) -> proc_macro2::TokenStream
+fn get_func(
+  ty: &syn::Type,
+  endian: &Endian,
+  field_name: &Option<proc_macro2::Ident>,
+  read: bool,
+) -> proc_macro2::TokenStream
 {
   if read {
     match endian {
@@ -235,10 +240,10 @@ fn get_func(ty: &syn::Type, endian: &Endian, read: bool) -> proc_macro2::TokenSt
     }
   } else {
     match endian {
-      Endian::Little => quote! { <#ty as ::structurs::PrimitiveWrite>::write_le(self, writer)? },
-      Endian::Big => quote! { <#ty as ::structurs::PrimitiveWrite>::write_be(self, writer)? },
-      Endian::Native => quote! { <#ty as ::structurs::PrimitiveWrite>::write_ne(self, writer)? },
-      Endian::Normal => quote! { <#ty as ::structurs::Write>::write(self, writer)? },
+      Endian::Little => quote! { <#ty as ::structurs::PrimitiveWrite>::write_le(self.#field_name, writer)? },
+      Endian::Big => quote! { <#ty as ::structurs::PrimitiveWrite>::write_be(self.#field_name, writer)? },
+      Endian::Native => quote! { <#ty as ::structurs::PrimitiveWrite>::write_ne(self.#field_name, writer)? },
+      Endian::Normal => quote! { <#ty as ::structurs::Write>::write(self.#field_name, writer)? },
     }
   }
 }
